@@ -1,0 +1,12 @@
+Test Script for Audio Quality Verification
+==========================================
+
+The quick brown fox jumps over the lazy dog.
+This sentence contains all letters of the alphabet.
+Testing audio quality with DirectSound fallback mechanism.
+Numbers: one, two, three, four, five.
+Special characters: period, comma, question mark?
+
+USB Webcam Test - C922 Pro Stream Webcam
+Expected transcription accuracy: less than 5% word error rate
+Total words: 50

@@ -1,0 +1,386 @@
+"""
+Veleron Office Installer - MS Office Integration Helper
+Creates shortcuts and startup entries for Veleron Dictation
+
+Features:
+- Desktop shortcut creation
+- Start Menu shortcut creation
+- Windows Startup folder integration
+- Quick launch batch file generation
+- User guide generation
+
+Author: Veleron Dev Studios
+License: Internal Use Only
+"""
+
+import os
+import sys
+import winshell
+from pathlib import Path
+from win32com.client import Dispatch
+import shutil
+import logging
+
+logger = logging.getLogger(__name__)
+
+
+class OfficeInstaller:
+    """Handles installation of Veleron Dictation for MS Office integration"""
+
+    def __init__(self, app_name="Veleron Dictation", script_name="veleron_dictation.py"):
+        """
+        Initialize the installer
+
+        Args:
+            app_name: Display name for the application
+            script_name: Python script filename to launch
+        """
+        self.app_name = app_name
+        self.script_name = script_name
+        self.project_dir = Path(__file__).parent.absolute()
+        self.script_path = self.project_dir / script_name
+        self.python_exe = sys.executable
+
+        # Get standard Windows folders
+        self.desktop = Path(winshell.desktop())
+        self.start_menu = Path(winshell.start_menu())
+        self.startup_folder = Path(winshell.startup())
+
+        logger.info(f"OfficeInstaller initialized for {app_name}")
+        logger.info(f"Script path: {self.script_path}")
+        logger.info(f"Python executable: {self.python_exe}")
+
+    def create_shortcut(self, target_folder, shortcut_name, description,
+                       icon_path=None, working_dir=None, arguments=""):
+        """
+        Create a Windows shortcut (.lnk file)
+
+        Args:
+            target_folder: Folder where shortcut will be created
+            shortcut_name: Name of the shortcut (without .lnk extension)
+            description: Shortcut description
+            icon_path: Path to icon file (optional)
+            working_dir: Working directory for the shortcut
+            arguments: Command-line arguments
+
+        Returns:
+            Path to created shortcut, or None if failed
+        """
+        try:
+            target_folder = Path(target_folder)
+            target_folder.mkdir(parents=True, exist_ok=True)
+
+            shortcut_path = target_folder / f"{shortcut_name}.lnk"
+
+            # Create COM object for shortcut
+            shell = Dispatch('WScript.Shell')
+            shortcut = shell.CreateShortCut(str(shortcut_path))
+
+            # Configure shortcut
+            shortcut.TargetPath = str(self.python_exe)
+            shortcut.Arguments = f'"{self.script_path}" {arguments}'
+            shortcut.WorkingDirectory = str(working_dir or self.project_dir)
+            shortcut.Description = description
+
+            # Set icon if provided
+            if icon_path and Path(icon_path).exists():
+                shortcut.IconLocation = str(icon_path)
+            else:
+                # Use Python icon as fallback
+                shortcut.IconLocation = f"{self.python_exe},0"
+
+            # Save the shortcut
+            shortcut.save()
+
+            logger.info(f"Created shortcut: {shortcut_path}")
+            return shortcut_path
+
+        except Exception as e:
+            logger.error(f"Failed to create shortcut at {target_folder}: {e}")
+            return None
+
+    def create_desktop_shortcut(self):
+        """Create desktop shortcut for Veleron Dictation"""
+        return self.create_shortcut(
+            target_folder=self.desktop,
+            shortcut_name=self.app_name,
+            description=f"{self.app_name} - Voice-to-Text Dictation for MS Office"
+        )
+
+    def create_start_menu_shortcut(self):
+        """Create Start Menu shortcut for Veleron Dictation"""
+        # Create in Programs subfolder
+        programs_folder = self.start_menu / "Programs" / "Veleron Dev Studios"
+
+        return self.create_shortcut(
+            target_folder=programs_folder,
+            shortcut_name=self.app_name,
+            description=f"{self.app_name} - Voice-to-Text Dictation"
+        )
+
+    def create_startup_shortcut(self):
+        """Create Windows Startup shortcut (auto-start on boot)"""
+        return self.create_shortcut(
+            target_folder=self.startup_folder,
+            shortcut_name=self.app_name,
+            description=f"{self.app_name} - Auto-start",
+            arguments="--minimized"  # Start minimized to system tray
+        )
+
+    def create_quick_launch_batch(self):
+        """
+        Create a batch file for quick launching
+
+        Returns:
+            Path to created batch file, or None if failed
+        """
+        try:
+            batch_path = self.project_dir / f"Launch_{self.app_name.replace(' ', '_')}.bat"
+
+            batch_content = f'''@echo off
+REM Veleron Dictation Quick Launch
+REM Generated by Office Installer
+REM Date: {Path.cwd()}
+
+echo ============================================================
+echo Starting {self.app_name}
+echo ============================================================
+
+cd /d "{self.project_dir}"
+
+REM Check if Python is available
+where python >nul 2>nul
+if %ERRORLEVEL% NEQ 0 (
+    echo ERROR: Python not found in PATH!
+    echo Please install Python or add it to your system PATH.
+    pause
+    exit /b 1
+)
+
+REM Launch the application
+echo Launching {self.script_name}...
+python "{self.script_path}"
+
+REM If there was an error, pause so user can see it
+if %ERRORLEVEL% NEQ 0 (
+    echo.
+    echo ERROR: Application failed to start!
+    echo Error code: %ERRORLEVEL%
+    pause
+)
+'''
+
+            with open(batch_path, 'w', encoding='utf-8') as f:
+                f.write(batch_content)
+
+            logger.info(f"Created batch file: {batch_path}")
+            return batch_path
+
+        except Exception as e:
+            logger.error(f"Failed to create batch file: {e}")
+            return None
+
+    def create_silent_launcher(self):
+        """
+        Create a VBScript silent launcher (no console window)
+
+        Returns:
+            Path to created VBS file, or None if failed
+        """
+        try:
+            vbs_path = self.project_dir / f"Launch_{self.app_name.replace(' ', '_')}_Silent.vbs"
+
+            vbs_content = f'''Set WshShell = CreateObject("WScript.Shell")
+WshShell.Run """{self.python_exe}"" ""{self.script_path}""", 0
+Set WshShell = Nothing
+'''
+
+            with open(vbs_path, 'w', encoding='utf-8') as f:
+                f.write(vbs_content)
+
+            logger.info(f"Created silent launcher: {vbs_path}")
+            return vbs_path
+
+        except Exception as e:
+            logger.error(f"Failed to create silent launcher: {e}")
+            return None
+
+    def install_all(self, include_startup=True, create_batch=True, create_silent=True):
+        """
+        Perform full installation
+
+        Args:
+            include_startup: Whether to add to Windows Startup
+            create_batch: Whether to create batch file
+            create_silent: Whether to create silent launcher
+
+        Returns:
+            dict with installation results
+        """
+        results = {
+            'success': False,
+            'desktop_shortcut': None,
+            'start_menu_shortcut': None,
+            'startup_shortcut': None,
+            'batch_file': None,
+            'silent_launcher': None,
+            'errors': []
+        }
+
+        try:
+            # Verify script exists
+            if not self.script_path.exists():
+                error_msg = f"Script not found: {self.script_path}"
+                logger.error(error_msg)
+                results['errors'].append(error_msg)
+                return results
+
+            # Create desktop shortcut
+            logger.info("Creating desktop shortcut...")
+            results['desktop_shortcut'] = self.create_desktop_shortcut()
+            if not results['desktop_shortcut']:
+                results['errors'].append("Failed to create desktop shortcut")
+
+            # Create Start Menu shortcut
+            logger.info("Creating Start Menu shortcut...")
+            results['start_menu_shortcut'] = self.create_start_menu_shortcut()
+            if not results['start_menu_shortcut']:
+                results['errors'].append("Failed to create Start Menu shortcut")
+
+            # Create startup shortcut (optional)
+            if include_startup:
+                logger.info("Creating Windows Startup shortcut...")
+                results['startup_shortcut'] = self.create_startup_shortcut()
+                if not results['startup_shortcut']:
+                    results['errors'].append("Failed to create Startup shortcut")
+
+            # Create batch file (optional)
+            if create_batch:
+                logger.info("Creating quick launch batch file...")
+                results['batch_file'] = self.create_quick_launch_batch()
+                if not results['batch_file']:
+                    results['errors'].append("Failed to create batch file")
+
+            # Create silent launcher (optional)
+            if create_silent:
+                logger.info("Creating silent launcher...")
+                results['silent_launcher'] = self.create_silent_launcher()
+                if not results['silent_launcher']:
+                    results['errors'].append("Failed to create silent launcher")
+
+            # Check if at least desktop shortcut was created
+            if results['desktop_shortcut'] or results['start_menu_shortcut']:
+                results['success'] = True
+                logger.info("Installation completed successfully")
+            else:
+                logger.error("Installation failed - no shortcuts created")
+
+        except Exception as e:
+            error_msg = f"Installation failed: {str(e)}"
+            logger.error(error_msg)
+            results['errors'].append(error_msg)
+
+        return results
+
+    def uninstall_all(self):
+        """
+        Remove all installed shortcuts and files
+
+        Returns:
+            dict with uninstallation results
+        """
+        results = {
+            'success': False,
+            'removed': [],
+            'errors': []
+        }
+
+        try:
+            # List of files to remove
+            files_to_remove = [
+                self.desktop / f"{self.app_name}.lnk",
+                self.start_menu / "Programs" / "Veleron Dev Studios" / f"{self.app_name}.lnk",
+                self.startup_folder / f"{self.app_name}.lnk",
+                self.project_dir / f"Launch_{self.app_name.replace(' ', '_')}.bat",
+                self.project_dir / f"Launch_{self.app_name.replace(' ', '_')}_Silent.vbs"
+            ]
+
+            for file_path in files_to_remove:
+                try:
+                    if file_path.exists():
+                        file_path.unlink()
+                        results['removed'].append(str(file_path))
+                        logger.info(f"Removed: {file_path}")
+                except Exception as e:
+                    error_msg = f"Failed to remove {file_path}: {e}"
+                    logger.error(error_msg)
+                    results['errors'].append(error_msg)
+
+            # Try to remove empty Veleron Dev Studios folder from Start Menu
+            try:
+                programs_folder = self.start_menu / "Programs" / "Veleron Dev Studios"
+                if programs_folder.exists() and not list(programs_folder.iterdir()):
+                    programs_folder.rmdir()
+                    logger.info(f"Removed empty folder: {programs_folder}")
+            except Exception:
+                pass  # Ignore if folder not empty or can't be removed
+
+            results['success'] = True
+            logger.info("Uninstallation completed")
+
+        except Exception as e:
+            error_msg = f"Uninstallation failed: {str(e)}"
+            logger.error(error_msg)
+            results['errors'].append(error_msg)
+
+        return results
+
+
+def main():
+    """Test the installer"""
+    import sys
+
+    # Configure logging for standalone execution
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(levelname)s - %(message)s'
+    )
+
+    if len(sys.argv) > 1 and sys.argv[1] == "--uninstall":
+        print("Uninstalling Veleron Dictation...")
+        installer = OfficeInstaller()
+        results = installer.uninstall_all()
+
+        print("\nUninstallation Results:")
+        print(f"Success: {results['success']}")
+        print(f"Removed {len(results['removed'])} items")
+
+        if results['errors']:
+            print("\nErrors:")
+            for error in results['errors']:
+                print(f"  - {error}")
+    else:
+        print("Installing Veleron Dictation for MS Office...")
+        installer = OfficeInstaller()
+        results = installer.install_all(
+            include_startup=True,
+            create_batch=True,
+            create_silent=True
+        )
+
+        print("\nInstallation Results:")
+        print(f"Success: {results['success']}")
+        print(f"Desktop Shortcut: {'✓' if results['desktop_shortcut'] else '✗'}")
+        print(f"Start Menu Shortcut: {'✓' if results['start_menu_shortcut'] else '✗'}")
+        print(f"Startup Shortcut: {'✓' if results['startup_shortcut'] else '✗'}")
+        print(f"Batch File: {'✓' if results['batch_file'] else '✗'}")
+        print(f"Silent Launcher: {'✓' if results['silent_launcher'] else '✗'}")
+
+        if results['errors']:
+            print("\nErrors:")
+            for error in results['errors']:
+                print(f"  - {error}")
+
+
+if __name__ == "__main__":
+    main()

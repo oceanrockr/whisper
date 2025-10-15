@@ -1,0 +1,22 @@
+# Veleron Voice Flow Requirements
+# Additional dependencies for the voice-to-text application
+
+# Already installed with openai-whisper:
+# - openai-whisper
+# - torch
+# - numpy
+# - tqdm
+
+# Audio recording and processing
+sounddevice>=0.4.6
+soundfile>=0.12.1
+
+# Optional: Better audio format support
+pydub>=0.25.1
+
+# Optional: For DOCX export (if you want Word document export)
+# python-docx>=1.1.0
+
+# MS Office integration
+pywin32>=311
+winshell>=0.6

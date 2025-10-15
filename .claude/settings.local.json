@@ -1,0 +1,43 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pip show:*)",
+      "Bash(where python)",
+      "Bash(py --version)",
+      "Bash(py -m pip install:*)",
+      "Bash(ffmpeg:*)",
+      "Bash(choco:*)",
+      "Bash(scoop:*)",
+      "Bash(winget install:*)",
+      "Bash(py -m whisper:*)",
+      "Read(//c/Users/noelj/**)",
+      "Bash(py whisper_demo.py:*)",
+      "Read(//c/Program Files/ffmpeg/**)",
+      "Bash(\"C:\\Program Files\\ffmpeg\\bin\\ffmpeg.exe\" -version)",
+      "Bash(py:*)",
+      "Bash(echo $PATH)",
+      "Bash(tasklist)",
+      "Bash(dir:*)",
+      "Bash(findstr:*)",
+      "Bash(where:*)",
+      "Bash(setx:*)",
+      "Bash(ren:*)",
+      "Bash(start py veleron_voice_flow.py)",
+      "Bash(powershell:*)",
+      "Bash(python:*)",
+      "Bash(python3:*)",
+      "Bash(del test_temp_handler_import.py test_temp_handler_functional.py)",
+      "Bash(copy:*)",
+      "Bash(echo \"Exit code: $?\")",
+      "Read(//c/**)",
+      "Bash(C:Windowspy.exe -m py_compile \"c:\\Users\\noelj\\Projects\\Veleron Dev Studios\\Applications\\whisper\\veleron_dictation_v2.py\")",
+      "Bash(del \"c:\\Users\\noelj\\Projects\\Veleron Dev Studios\\Applications\\whisper\\test_device_selection.py\")",
+      "Bash(ls:*)",
+      "Bash(wmic:*)",
+      "Bash(systeminfo)",
+      "Bash(git add:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
